@@ -16,7 +16,7 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">GPA Calculator</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{session.user.email}</span>
+            <span className="text-sm text-muted-foreground">{session.user.name || session.user.email}</span>
             <form
               action={async () => {
                 'use server';

@@ -30,7 +30,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     setLoading(false)
 
     if (error) {
-      setError(error.message ?? 'Something went wrong')
+      setError(error.message ?? 'Đã có lỗi xảy ra')
       return
     }
 
@@ -43,19 +43,19 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
       <Card className="w-full max-w-sm p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {isSignUp ? 'Create an account' : 'Welcome back'}
+            {isSignUp ? 'Tạo tài khoản' : 'Chào mừng trở lại'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isSignUp
-              ? 'Sign up to get started'
-              : 'Sign in to your account to continue'}
+              ? 'Đăng ký để bắt đầu'
+              : 'Đăng nhập vào tài khoản của bạn để tiếp tục'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {isSignUp && (
             <div className="flex flex-col gap-2">
-              <label htmlFor="name" className="text-sm font-medium">Name</label>
+              <label htmlFor="name" className="text-sm font-medium">Họ tên</label>
               <Input
                 id="name"
                 value={name}
@@ -77,7 +77,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="password" className="text-sm font-medium">Password</label>
+            <label htmlFor="password" className="text-sm font-medium">Mật khẩu</label>
             <Input
               id="password"
               type="password"
@@ -97,20 +97,20 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading
-              ? 'Please wait...'
+              ? 'Vui lòng chờ...'
               : isSignUp
-                ? 'Create account'
-                : 'Sign in'}
+                ? 'Tạo tài khoản'
+                : 'Đăng nhập'}
           </Button>
         </form>
 
         <p className="text-sm text-muted-foreground text-center mt-6">
-          {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+          {isSignUp ? 'Đã có tài khoản? ' : "Chưa có tài khoản? "}
           <Link
             href={isSignUp ? '/sign-in' : '/sign-up'}
             className="text-foreground font-medium underline-offset-4 hover:underline"
           >
-            {isSignUp ? 'Sign in' : 'Sign up'}
+            {isSignUp ? 'Đăng nhập' : 'Đăng ký'}
           </Link>
         </p>
       </Card>
