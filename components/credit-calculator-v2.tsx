@@ -63,7 +63,7 @@ export function CreditCalculatorV2() {
         const exemptionsRes = await fetch('/api/exemptions');
         if (exemptionsRes.ok) {
           const exemptionsData = await exemptionsRes.json();
-          const selectedIds = new Set(exemptionsData.map((e: any) => e.course.id));
+          const selectedIds = new Set<number>(exemptionsData.map((e: any) => Number(e.course.id)));
           setSelectedCourses(selectedIds);
         }
       } catch (e) {
@@ -194,25 +194,46 @@ export function CreditCalculatorV2() {
   console.log('[v0] Current GPA data:', gpaData);
 
   // Calculate target grades
+  const totalRequiredCredits = (creditSummary?.mandatoryCreditsRequired || 120) + (creditSummary?.electiveCreditsRequired || 12);
   const targetData = calculateTargetGrades(
-    gradesArray.map(g => ({ score10: g.score10 })),
-    courses.length
+    gradesArray.map(g => {
+      const course = courses.find(c => c.id === g.courseId);
+      return { score4: g.score4, credits: course ? course.credits : 0 };
+    }),
+    totalRequiredCredits
   );
 
-  const totalRemaining = creditSummary
-    ? creditSummary.mandatoryCreditsRequired - creditSummary.mandatoryCreditsCompleted +
-      (creditSummary.electiveCreditsRequired - creditSummary.electiveCreditsCompleted)
-    : 132;
+  const completedMandatoryCredits = Array.from(selectedCourses)
+    .map(id => courses.find(c => c.id === id))
+    .filter(c => c && c.isMandatory)
+    .reduce((sum, c) => sum + (c ? c.credits : 0), 0);
+
+  const completedElectiveCredits = Array.from(selectedCourses)
+    .map(id => courses.find(c => c.id === id))
+    .filter(c => c && !c.isMandatory)
+    .reduce((sum, c) => sum + (c ? c.credits : 0), 0);
+
+  const mandatoryRemaining = Math.max(0, (creditSummary?.mandatoryCreditsRequired || 120) - completedMandatoryCredits);
+  const electiveRemaining = Math.max(0, (creditSummary?.electiveCreditsRequired || 12) - completedElectiveCredits);
+  
+  const uncompletedMandatoryCoursesCount = courses.filter(c => c.isMandatory && !selectedCourses.has(c.id)).length;
+  const suggestedElectiveCoursesCount = Math.ceil(electiveRemaining / 3);
+
+  const totalRemaining = mandatoryRemaining + electiveRemaining;
+  const totalRemainingCourses = uncompletedMandatoryCoursesCount + suggestedElectiveCoursesCount;
+  const avgCreditsPerCourse = totalRemainingCourses > 0 ? totalRemaining / totalRemainingCourses : 3;
+
+  const minCoursesAGood = Math.ceil(targetData.minAForGood / avgCreditsPerCourse);
+  const minCoursesAExcellent = Math.ceil(targetData.minAForExcellent / avgCreditsPerCourse);
 
   const totalCost = Math.max(0, totalRemaining * CREDIT_PRICE - DEDUCTION);
 
   if (loading) return <div className="flex items-center justify-center p-8">Đang tải...</div>;
 
   return (
-    <div className="flex gap-6 p-6 bg-background min-h-screen">
+    <div className="grid grid-cols-12 gap-6 p-6 bg-background min-h-screen">
       {/* Main Content - Courses Table */}
-      <div className="flex-1">
-        <h1 className="text-3xl font-bold mb-6">Tính Toán Học Phí</h1>
+      <div className="col-span-12 lg:col-span-8">
 
         {/* Courses by Semester */}
         {[1, 2, 3, 4, 5, 6, 7, 8].map(semester => {
@@ -251,12 +272,24 @@ export function CreditCalculatorV2() {
                               }
                             />
                             <div className="flex-1">
-                              <div className="text-sm font-medium">{course.courseName}</div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-base font-medium">{course.courseName}</div>
+                              <div className="text-sm text-muted-foreground mt-0.5">
                                 {course.courseCode} - {course.credits} tín
                               </div>
                             </div>
                             
+                            {/* Score Display */}
+                            <div className="w-[140px] text-right">
+                              {grade && (
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="font-bold text-lg text-primary">{grade.score10.toFixed(1)}</span>
+                                  <span className="text-base font-medium text-muted-foreground">
+                                    {grade.letterGrade} ({grade.score4.toFixed(2)})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
                             {/* Grade Input */}
                             <input
                               type="number"
@@ -268,18 +301,8 @@ export function CreditCalculatorV2() {
                               onChange={(e) => handleGradeInputChange(course.id, e.target.value)}
                               onBlur={() => handleGradeBlur(course.id)}
                               onFocus={() => setGradeInputFocused(course.id)}
-                              className="w-16 px-2 py-1 text-xs border rounded bg-background text-foreground"
+                              className="w-20 px-3 py-1.5 text-sm font-medium border rounded bg-background text-foreground"
                             />
-
-                            {/* Score Display */}
-                            {grade && (
-                              <div className="text-right text-xs">
-                                <div className="font-semibold">{grade.score10.toFixed(1)}</div>
-                                <div className="text-muted-foreground">
-                                  {grade.letterGrade} ({grade.score4.toFixed(2)})
-                                </div>
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -306,10 +329,22 @@ export function CreditCalculatorV2() {
                               }
                             />
                             <div className="flex-1">
-                              <div className="text-sm font-medium">{course.courseName}</div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-base font-medium">{course.courseName}</div>
+                              <div className="text-sm text-muted-foreground mt-0.5">
                                 {course.courseCode} - {course.credits} tín
                               </div>
+                            </div>
+
+                            {/* Score Display */}
+                            <div className="w-[140px] text-right">
+                              {grade && (
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="font-bold text-lg text-primary">{grade.score10.toFixed(1)}</span>
+                                  <span className="text-base font-medium text-muted-foreground">
+                                    {grade.letterGrade} ({grade.score4.toFixed(2)})
+                                  </span>
+                                </div>
+                              )}
                             </div>
 
                             {/* Grade Input */}
@@ -323,18 +358,8 @@ export function CreditCalculatorV2() {
                               onChange={(e) => handleGradeInputChange(course.id, e.target.value)}
                               onBlur={() => handleGradeBlur(course.id)}
                               onFocus={() => setGradeInputFocused(course.id)}
-                              className="w-16 px-2 py-1 text-xs border rounded bg-background text-foreground"
+                              className="w-20 px-3 py-1.5 text-sm font-medium border rounded bg-background text-foreground"
                             />
-
-                            {/* Score Display */}
-                            {grade && (
-                              <div className="text-right text-xs">
-                                <div className="font-semibold">{grade.score10.toFixed(1)}</div>
-                                <div className="text-muted-foreground">
-                                  {grade.letterGrade} ({grade.score4.toFixed(2)})
-                                </div>
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -348,48 +373,78 @@ export function CreditCalculatorV2() {
       </div>
 
       {/* Right Sidebar - Summary */}
-      <div className="w-80 space-y-6">
-        {/* GPA Summary */}
+      <div className="col-span-12 lg:col-span-4 space-y-6 sticky top-6 h-fit">
+        {/* GPA & Target Summary */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">GPA</CardTitle>
+            <CardTitle className="text-lg">GPA & Mục Tiêu</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Thang 10</div>
-              <div className="text-3xl font-bold">{gpaData.gpa10.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">{gpaData.letterGrade}</div>
+            <div className="flex justify-between items-end">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Thang 10</div>
+                <div className="text-3xl font-bold">{gpaData.gpa10.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">{gpaData.letterGrade}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground mb-1">Thang 4</div>
+                <div className="text-2xl font-semibold">{gpaData.gpa4.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">{gpaData.totalCourses} môn đã nhập</div>
+              </div>
             </div>
 
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Thang 4</div>
-              <div className="text-2xl font-semibold">{gpaData.gpa4.toFixed(2)}</div>
-            </div>
-
-            <div className="text-xs">
-              <div className="text-muted-foreground">{gpaData.totalCourses} môn đã nhập</div>
+            <div className="border-t pt-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Để đạt Giỏi (3.2):</span>
+                <span className="font-semibold text-right">Cần ~{minCoursesAGood} học phần A</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Để đạt Xuất sắc (3.6):</span>
+                <span className="font-semibold text-right">Cần ~{minCoursesAExcellent} học phần A</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Target Goals */}
+        {/* Progress Summary */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Mục Tiêu</CardTitle>
+            <CardTitle className="text-lg">Tiến Độ Học Tập</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          <CardContent className="space-y-4">
             <div>
-              <div className="text-muted-foreground mb-1">Để đạt GPA Giỏi (8.0):</div>
-              <div className="font-semibold">
-                Cần {targetData.minAForGood} môn A
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-muted-foreground">Bắt buộc ({creditSummary?.mandatoryCreditsRequired || 120} tín)</span>
+                <span className="font-medium">{completedMandatoryCredits} / {creditSummary?.mandatoryCreditsRequired || 120}</span>
               </div>
+              <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary" 
+                  style={{ width: `${Math.min(100, (completedMandatoryCredits / (creditSummary?.mandatoryCreditsRequired || 120)) * 100)}%` }}
+                />
+              </div>
+              {mandatoryRemaining > 0 && (
+                 <div className="text-xs text-muted-foreground mt-2">
+                   Còn phải học: <span className="font-medium text-foreground">{uncompletedMandatoryCoursesCount} môn</span>
+                 </div>
+              )}
             </div>
-
             <div>
-              <div className="text-muted-foreground mb-1">Để đạt GPA Xuất sắc (8.5):</div>
-              <div className="font-semibold">
-                Cần {targetData.minAForExcellent} môn A
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-muted-foreground">Tự chọn ({creditSummary?.electiveCreditsRequired || 12} tín)</span>
+                <span className="font-medium">{completedElectiveCredits} / {creditSummary?.electiveCreditsRequired || 12}</span>
               </div>
+              <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary" 
+                  style={{ width: `${Math.min(100, (completedElectiveCredits / (creditSummary?.electiveCreditsRequired || 12)) * 100)}%` }}
+                />
+              </div>
+              {electiveRemaining > 0 && (
+                 <div className="text-xs text-muted-foreground mt-2">
+                   Gợi ý: Cần thêm <span className="font-medium text-foreground">{electiveRemaining} tín</span> (tương đương ~{suggestedElectiveCoursesCount} môn loại 3 tín)
+                 </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -400,26 +455,26 @@ export function CreditCalculatorV2() {
             <CardTitle className="text-lg">Tóm Tắt Học Phí</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Tổng tín chỉ còn lại:</div>
-              <div className="text-2xl font-bold">{totalRemaining}</div>
+            <div className="flex justify-between items-end">
+              <span className="text-sm text-muted-foreground">Tổng tín chỉ còn lại:</span>
+              <span className="text-xl font-bold">{totalRemaining}</span>
             </div>
 
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Học phí ban đầu:</div>
-              <div className="font-medium">₫{(totalRemaining * CREDIT_PRICE).toLocaleString('vi-VN')}</div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Học phí ban đầu:</span>
+              <span className="font-medium">₫{(totalRemaining * CREDIT_PRICE).toLocaleString('vi-VN')}</span>
             </div>
 
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Khấu trừ (Lệ phí):</div>
-              <div className="font-medium text-green-600">-₫{DEDUCTION.toLocaleString('vi-VN')}</div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Khấu trừ (Lệ phí):</span>
+              <span className="font-medium text-green-600">-₫{DEDUCTION.toLocaleString('vi-VN')}</span>
             </div>
 
-            <div className="border-t pt-3">
-              <div className="text-xs text-muted-foreground mb-2">Tổng phải thanh toán:</div>
-              <div className="text-3xl font-bold text-primary">
+            <div className="border-t pt-3 flex justify-between items-end">
+              <span className="text-sm text-muted-foreground font-medium">Phải thanh toán:</span>
+              <span className="text-2xl font-bold text-primary">
                 ₫{totalCost.toLocaleString('vi-VN')}
-              </div>
+              </span>
             </div>
           </CardContent>
         </Card>

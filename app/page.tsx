@@ -14,7 +14,7 @@ export default async function Home() {
     <div className="min-h-screen bg-background">
       <div className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">GPA Calculator</h1>
+          <h1 className="text-2xl font-bold">Tính Toán GPA Thủ công</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{session.user.name || session.user.email}</span>
             <form
@@ -28,7 +28,7 @@ export default async function Home() {
                 type="submit"
                 className="px-3 py-1 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
               >
-                Logout
+                Đăng xuất
               </button>
             </form>
           </div>

@@ -137,36 +137,34 @@ interface TargetCalculation {
  * Xuất sắc (Excellent): GPA >= 8.5
  */
 export function calculateTargetGrades(
-  currentGrades: { score10: number }[],
-  totalCoursesInProgram: number
+  currentGrades: { score4: number; credits: number }[],
+  totalCreditsInProgram: number
 ): TargetCalculation {
-  const currentSum = currentGrades.reduce((sum, g) => sum + g.score10, 0);
-  const currentCount = currentGrades.length;
-  const remainingCourses = totalCoursesInProgram - currentCount;
+  const currentPoints = currentGrades.reduce((sum, g) => sum + (g.score4 * g.credits), 0);
 
-  // For Giỏi (8.0 GPA)
-  const targetSumGood = 8.0 * totalCoursesInProgram;
-  const pointsNeededGood = targetSumGood - currentSum;
-  const minAForGood = Math.ceil(pointsNeededGood / 10); // Assuming A = 10, worst case
+  // For Giỏi (3.2 GPA)
+  const targetSumGood = 3.2 * totalCreditsInProgram;
+  const pointsNeededGood = targetSumGood - currentPoints;
+  const minCreditsAForGood = Math.ceil(pointsNeededGood / 4.0); // Assuming A = 4.0 per credit
 
-  // For Xuất sắc (8.5 GPA)
-  const targetSumExcellent = 8.5 * totalCoursesInProgram;
-  const pointsNeededExcellent = targetSumExcellent - currentSum;
-  const minAForExcellent = Math.ceil(pointsNeededExcellent / 10);
+  // For Xuất sắc (3.6 GPA)
+  const targetSumExcellent = 3.6 * totalCreditsInProgram;
+  const pointsNeededExcellent = targetSumExcellent - currentPoints;
+  const minCreditsAForExcellent = Math.ceil(pointsNeededExcellent / 4.0);
 
   return {
-    aGradesNeeded: Math.max(0, minAForGood),
-    bPlusGradesNeeded: Math.max(0, Math.ceil((pointsNeededGood - minAForGood * 10) / 8.5)),
-    bGradesNeeded: Math.max(0, Math.ceil((pointsNeededGood - minAForGood * 10 - Math.ceil((pointsNeededGood - minAForGood * 10) / 8.5) * 8.5) / 7.5)),
-    minAForGood: Math.max(0, minAForGood),
-    minAForExcellent: Math.max(0, minAForExcellent),
+    aGradesNeeded: 0,
+    bPlusGradesNeeded: 0,
+    bGradesNeeded: 0,
+    minAForGood: Math.max(0, minCreditsAForGood),
+    minAForExcellent: Math.max(0, minCreditsAForExcellent),
   };
 }
 
 export const GPA_LEVELS = {
-  EXCELLENT: { min: 8.5, label: 'Xuất sắc', color: 'text-green-600' },
-  GOOD: { min: 8.0, label: 'Giỏi', color: 'text-blue-600' },
-  AVERAGE: { min: 6.5, label: 'Khá', color: 'text-yellow-600' },
+  EXCELLENT: { min: 3.6, label: 'Xuất sắc', color: 'text-green-600' },
+  GOOD: { min: 3.2, label: 'Giỏi', color: 'text-blue-600' },
+  AVERAGE: { min: 2.5, label: 'Khá', color: 'text-yellow-600' },
   PASS: { min: 4.0, label: 'Đạt', color: 'text-orange-600' },
   FAIL: { min: 0, label: 'Không đạt', color: 'text-red-600' },
 };
