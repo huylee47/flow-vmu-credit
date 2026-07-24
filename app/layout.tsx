@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'VMU Credit Flow',
+  title: 'VMU - Tính Điểm & Học Phí',
   description: 'Created by HuyLee',
   generator: 'v0.app',
   icons: {
