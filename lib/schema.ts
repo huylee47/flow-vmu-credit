@@ -50,6 +50,7 @@ export const courses = pgTable('course', {
   semester: integer('semester'),
   isMandatory: boolean('isMandatory'),
   prerequisite: text('prerequisite'), // Prerequisites as comma-separated codes
+  feeType: text('feeType').default('A'), // Fee tier: A or B
   createdAt: timestamp('createdAt').defaultNow(),
 });
 

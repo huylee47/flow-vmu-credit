@@ -13,6 +13,7 @@ interface Course {
   credits: number;
   semester: number;
   isMandatory: boolean;
+  feeType?: string;
 }
 
 interface Grade {
@@ -29,8 +30,14 @@ interface CreditSummary {
   electiveCreditsCompleted: number;
 }
 
-const CREDIT_PRICE = 750000;
+const CREDIT_PRICE_A = 815000; // Fee type A
+const CREDIT_PRICE_B = 815000; // Fee type B (same as A for now, can differ later)
 const DEDUCTION = 10200000;
+
+// Fee tier pricing
+const getFeePerCredit = (feeType?: string) => {
+  return feeType === 'B' ? CREDIT_PRICE_B : CREDIT_PRICE_A;
+};
 
 export function CreditCalculatorV2() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -204,7 +211,21 @@ export function CreditCalculatorV2() {
       (creditSummary.electiveCreditsRequired - creditSummary.electiveCreditsCompleted)
     : 132;
 
-  const totalCost = Math.max(0, totalRemaining * CREDIT_PRICE - DEDUCTION);
+  // Calculate tuition based on selected courses and their fee types
+  let totalCreditsForFee = 0;
+  selectedCourses.forEach(courseId => {
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+      totalCreditsForFee += course.credits;
+    }
+  });
+
+  // Use selected courses' credits for tuition if available, otherwise estimate
+  const creditsForCalculation = totalCreditsForFee > 0 
+    ? totalCreditsForFee
+    : totalRemaining;
+
+  const totalCost = Math.max(0, creditsForCalculation * CREDIT_PRICE_A - DEDUCTION);
 
   if (loading) return <div className="flex items-center justify-center p-8">Đang tải...</div>;
 
