@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -66,6 +67,7 @@ const getHighestFeeForCourse = (
 };
 
 export function CreditCalculatorV2() {
+  const reduce = useReducedMotion();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -316,9 +318,29 @@ export function CreditCalculatorV2() {
   const totalBaseFee = uncompletedMandatoryFee + uncompletedElectiveFee;
   const totalCost = Math.max(0, totalBaseFee - DEDUCTION);
 
+  const isElectiveLimitReached = completedElectiveCredits >= (creditSummary?.electiveCreditsRequired || 12);
+
   if (loading)
     return (
-      <div className="flex items-center justify-center p-8">Đang tải...</div>
+      <div className="grid grid-cols-12 gap-6 p-6 bg-background min-h-screen">
+        <div className="col-span-12 lg:col-span-8 space-y-6">
+          <div className="h-10 w-48 bg-muted animate-pulse rounded-md mb-6"></div>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="border rounded-md p-6">
+              <div className="h-6 w-32 bg-muted animate-pulse rounded-md mb-6"></div>
+              <div className="space-y-4">
+                <div className="h-12 w-full bg-muted animate-pulse rounded-md"></div>
+                <div className="h-12 w-full bg-muted animate-pulse rounded-md"></div>
+                <div className="h-12 w-full bg-muted animate-pulse rounded-md"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="col-span-12 lg:col-span-4 space-y-6">
+          <div className="h-64 w-full bg-muted animate-pulse rounded-xl"></div>
+          <div className="h-64 w-full bg-muted animate-pulse rounded-xl"></div>
+        </div>
+      </div>
     );
 
   return (
@@ -347,8 +369,8 @@ export function CreditCalculatorV2() {
                     <h3 className="font-semibold text-sm text-muted-foreground mb-3">
                       Bắt Buộc
                     </h3>
-                    <div className="space-y-3">
-                      {mandatory.map((course) => {
+                    <div className="divide-y divide-border border rounded-md">
+                      {mandatory.map((course, index) => {
                         const grade = grades.get(course.id);
                         const gradeInput = document.querySelector(
                           `input[data-course-id="${course.id}"]`,
@@ -359,9 +381,12 @@ export function CreditCalculatorV2() {
                         const courseTotalFee = feePerCredit * course.credits;
 
                         return (
-                          <div
+                          <motion.div
                             key={course.id}
-                            className="flex items-center gap-3 p-2 bg-muted rounded"
+                            initial={reduce ? false : { opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.03 }}
+                            className="flex items-center gap-4 py-3 px-4 hover:bg-muted/30 transition-colors"
                           >
                             <Checkbox
                               checked={selectedCourses.has(course.id)}
@@ -420,9 +445,9 @@ export function CreditCalculatorV2() {
                               }
                               onBlur={() => handleGradeBlur(course.id)}
                               onFocus={() => setGradeInputFocused(course.id)}
-                              className="w-20 px-3 py-1.5 text-sm font-medium border rounded bg-background text-foreground"
+                              className="w-20 px-3 py-1.5 text-sm font-medium border rounded bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all"
                             />
-                          </div>
+                          </motion.div>
                         );
                       })}
                     </div>
@@ -435,20 +460,25 @@ export function CreditCalculatorV2() {
                     <h3 className="font-semibold text-sm text-muted-foreground mb-3">
                       Tự Chọn
                     </h3>
-                    <div className="space-y-3">
-                      {elective.map((course) => {
+                    <div className="divide-y divide-border border rounded-md">
+                      {elective.map((course, index) => {
                         const grade = grades.get(course.id);
                         
                         const feePerCredit = getHighestFeeForCourse(courseFees, course.id);
                         const courseTotalFee = feePerCredit * course.credits;
 
                         return (
-                          <div
+                          <motion.div
                             key={course.id}
-                            className="flex items-center gap-3 p-2 bg-muted rounded"
+                            initial={reduce ? false : { opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.03 }}
+                            className="flex items-center gap-4 py-3 px-4 hover:bg-muted/30 transition-colors"
+                            title={isElectiveLimitReached && !selectedCourses.has(course.id) ? "Đã đủ số tín chỉ tự chọn" : undefined}
                           >
                             <Checkbox
                               checked={selectedCourses.has(course.id)}
+                              disabled={isElectiveLimitReached && !selectedCourses.has(course.id)}
                               onCheckedChange={(checked) =>
                                 handleToggleCourse(
                                   course.id,
@@ -504,9 +534,9 @@ export function CreditCalculatorV2() {
                               }
                               onBlur={() => handleGradeBlur(course.id)}
                               onFocus={() => setGradeInputFocused(course.id)}
-                              className="w-20 px-3 py-1.5 text-sm font-medium border rounded bg-background text-foreground"
+                              className="w-20 px-3 py-1.5 text-sm font-medium border rounded bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all"
                             />
-                          </div>
+                          </motion.div>
                         );
                       })}
                     </div>
@@ -519,22 +549,22 @@ export function CreditCalculatorV2() {
       </div>
 
       {/* Right Sidebar - Summary */}
-      <div className="col-span-12 lg:col-span-4 space-y-6 sticky top-6 h-fit">
+      <div className="col-span-12 lg:col-span-4 space-y-2 sticky top-18 h-fit pb-10">
         {/* GPA & Target Summary */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">GPA & Mục Tiêu</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-1">
             <div className="flex justify-between items-end">
               <div>
-                <div className="text-xs text-muted-foreground mb-1">
+                <div className="text-md text-muted-foreground mb-1">
                   Thang 10
                 </div>
-                <div className="text-3xl font-bold">
+                <div className="text-2xl font-bold">
                   {gpaData.gpa10.toFixed(2)}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-md text-muted-foreground">
                   {gpaData.letterGrade}
                 </div>
               </div>
@@ -545,7 +575,7 @@ export function CreditCalculatorV2() {
                 <div className="text-2xl font-semibold">
                   {gpaData.gpa4.toFixed(2)}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-md text-muted-foreground">
                   {gpaData.totalCourses} môn đã nhập
                 </div>
               </div>
@@ -577,12 +607,16 @@ export function CreditCalculatorV2() {
           <CardHeader>
             <CardTitle className="text-lg">Tiến Độ Học Tập</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-2">
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">
+                <span className="text-foreground">
                   Bắt buộc ({creditSummary?.mandatoryCreditsRequired || 120}{" "}
-                  tín)
+                  tín) | {mandatoryRemaining > 0 && (
+                    <span className="font-medium text-foreground">
+                      Còn phải học:{" "} {uncompletedMandatoryCoursesCount} môn
+                    </span>
+                  )}
                 </span>
                 <span className="font-medium">
                   {completedMandatoryCredits} /{" "}
@@ -597,18 +631,11 @@ export function CreditCalculatorV2() {
                   }}
                 />
               </div>
-              {mandatoryRemaining > 0 && (
-                <div className="text-xs text-muted-foreground mt-2">
-                  Còn phải học:{" "}
-                  <span className="font-medium text-foreground">
-                    {uncompletedMandatoryCoursesCount} môn
-                  </span>
-                </div>
-              )}
+
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">
+                <span className="text-foreground">
                   Tự chọn ({creditSummary?.electiveCreditsRequired || 12} tín)
                 </span>
                 <span className="font-medium">

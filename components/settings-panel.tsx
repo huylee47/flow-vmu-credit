@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import { Save, Loader2 } from 'lucide-react';
 
 interface Course {
   id: number;
@@ -165,13 +167,13 @@ export function SettingsPanel() {
       });
 
       if (res.ok) {
-        alert('Đã lưu tất cả thành công!');
+        toast.success('Đã lưu tất cả thành công!');
       } else {
-        alert('Lỗi khi lưu!');
+        toast.error('Lỗi khi lưu!');
       }
     } catch (error) {
       console.error('[v0] Error saving fees:', error);
-      alert('Đã xảy ra lỗi!');
+      toast.error('Đã xảy ra lỗi!');
     } finally {
       setSavingAll(false);
     }
@@ -180,16 +182,47 @@ export function SettingsPanel() {
   const semesters = Array.from(new Set(courses.map(c => c.semester))).sort((a, b) => a - b);
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return (
+      <div className="max-w-7xl mx-auto p-6 space-y-4">
+        <div className="h-8 w-64 bg-muted animate-pulse rounded-md"></div>
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-48 bg-muted animate-pulse rounded-md"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-12 w-full bg-muted animate-pulse rounded-md"></div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Course Fee Management</CardTitle>
-          <Button onClick={handleSaveAll} disabled={savingAll}>
-            {savingAll ? 'Đang lưu...' : 'Lưu Tất Cả'}
+          <CardTitle>Quản lý học phí môn học</CardTitle>
+          <Button 
+            onClick={handleSaveAll} 
+            disabled={savingAll}
+            className="group relative overflow-hidden bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300"
+          >
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+            {savingAll ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Đang lưu...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+                Lưu Tất Cả
+              </>
+            )}
           </Button>
         </CardHeader>
         <CardContent>
@@ -197,13 +230,13 @@ export function SettingsPanel() {
             <table className="w-full text-sm">
               <thead className="border-b">
                 <tr>
-                  <th className="text-left py-2 px-4">Code</th>
-                  <th className="text-left py-2 px-4">Course Name</th>
-                  <th className="text-center py-2 px-4">Credits</th>
-                  <th className="text-right py-2 px-4">Fee Old</th>
-                  <th className="text-right py-2 px-4">Tier 1</th>
-                  <th className="text-right py-2 px-4">Tier 2</th>
-                  <th className="text-right py-2 px-4">Tier 3</th>
+                  <th className="text-left py-2 px-4">Mã Học phần</th>
+                  <th className="text-left py-2 px-4">Tên học phần</th>
+                  <th className="text-center py-2 px-4">Tín chỉ</th>
+                  <th className="text-left py-2 px-4">H/P ban đầu</th>
+                  <th className="text-left py-2 px-4">H/P tăng lần 1</th>
+                  <th className="text-left py-2 px-4">H/P tăng lần 2</th>
+                  <th className="text-left py-2 px-4">H/P tăng lần 3</th>
                 </tr>
               </thead>
               {semesters.map(semester => (
