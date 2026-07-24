@@ -30,13 +30,36 @@ interface CreditSummary {
   electiveCreditsCompleted: number;
 }
 
-const CREDIT_PRICE_A = 815000; // Fee type A
-const CREDIT_PRICE_B = 815000; // Fee type B (same as A for now, can differ later)
+interface CourseFee {
+  courseId: number;
+  feeOld?: number;
+  feeTier1?: number;
+  feeTier2?: number;
+  feeTier3?: number;
+}
+
+const DEFAULT_FEE_OLD = 755000; // Default old fee
+const DEFAULT_FEE_TIER1 = 815000; // Default tier 1
+const DEFAULT_FEE_TIER2 = 0; // TBD
+const DEFAULT_FEE_TIER3 = 0; // TBD
 const DEDUCTION = 10200000;
 
-// Fee tier pricing
-const getFeePerCredit = (feeType?: string) => {
-  return feeType === 'B' ? CREDIT_PRICE_B : CREDIT_PRICE_A;
+// Get fee per credit based on tier
+const getFeeByCourseAndTier = (fees: CourseFee[], courseId: number, tier: 'old' | '1' | '2' | '3'): number => {
+  const courseFee = fees.find(f => f.courseId === courseId);
+  
+  switch (tier) {
+    case 'old':
+      return courseFee?.feeOld || DEFAULT_FEE_OLD;
+    case '1':
+      return courseFee?.feeTier1 || DEFAULT_FEE_TIER1;
+    case '2':
+      return courseFee?.feeTier2 || DEFAULT_FEE_TIER2;
+    case '3':
+      return courseFee?.feeTier3 || DEFAULT_FEE_TIER3;
+    default:
+      return DEFAULT_FEE_OLD;
+  }
 };
 
 export function CreditCalculatorV2() {
@@ -48,6 +71,8 @@ export function CreditCalculatorV2() {
   const [gradeInputs, setGradeInputs] = useState<Map<number, string>>(new Map());
   const [creditSummary, setCreditSummary] = useState<CreditSummary | null>(null);
   const [gradeInputFocused, setGradeInputFocused] = useState<number | null>(null);
+  const [courseFees, setCourseFees] = useState<CourseFee[]>([]);
+  const [feeTiers, setFeeTiers] = useState<Record<number, 'old' | '1' | '2' | '3'>>({});
 
   useEffect(() => {
     loadData();
@@ -75,6 +100,17 @@ export function CreditCalculatorV2() {
         }
       } catch (e) {
         console.log('[v0] Error fetching exemptions:', e);
+      }
+
+      // Fetch course fees
+      try {
+        const feesRes = await fetch('/api/course-fees');
+        if (feesRes.ok) {
+          const feesData = await feesRes.json();
+          setCourseFees(Array.isArray(feesData) ? feesData : []);
+        }
+      } catch (e) {
+        console.log('[v0] Error fetching course fees:', e);
       }
 
       // Fetch grades

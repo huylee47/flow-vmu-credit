@@ -8,6 +8,7 @@ export const users = pgTable('user', {
   email: text('email').unique(),
   emailVerified: boolean('emailVerified'),
   image: text('image'),
+  role: text('role').default('user'), // 'user' or 'admin'
   createdAt: timestamp('createdAt'),
   updatedAt: timestamp('updatedAt'),
 });
@@ -116,4 +117,20 @@ export const grades = pgTable('grade', {
 export const gradesRelations = relations(grades, ({ one }) => ({
   user: one(users, { fields: [grades.userId], references: [users.id] }),
   course: one(courses, { fields: [grades.courseId], references: [courses.id] }),
+}));
+
+// Course Fee Configuration - stores different fee tiers for each course
+export const courseFeeConfigs = pgTable('courseFeeConfig', {
+  id: serial('id').primaryKey(),
+  courseId: integer('courseId').unique().references(() => courses.id),
+  feeOld: integer('feeOld'), // Old fee tier (VND per credit)
+  feeTier1: integer('feeTier1'), // 1st increase
+  feeTier2: integer('feeTier2'), // 2nd increase
+  feeTier3: integer('feeTier3'), // 3rd increase
+  createdAt: timestamp('createdAt').defaultNow(),
+  updatedAt: timestamp('updatedAt').defaultNow(),
+});
+
+export const courseFeeConfigRelations = relations(courseFeeConfigs, ({ one }) => ({
+  course: one(courses, { fields: [courseFeeConfigs.courseId], references: [courses.id] }),
 }));
