@@ -33,6 +33,41 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    if (Array.isArray(body)) {
+      await db.transaction(async (tx) => {
+        for (const item of body) {
+          const { courseId, feeOld, feeTier1, feeTier2, feeTier3 } = item;
+          const existing = await tx
+            .select()
+            .from(courseFeeConfigs)
+            .where(eq(courseFeeConfigs.courseId, courseId));
+
+          if (existing.length > 0) {
+            await tx
+              .update(courseFeeConfigs)
+              .set({
+                feeOld,
+                feeTier1,
+                feeTier2,
+                feeTier3,
+                updatedAt: new Date(),
+              })
+              .where(eq(courseFeeConfigs.courseId, courseId));
+          } else {
+            await tx.insert(courseFeeConfigs).values({
+              courseId,
+              feeOld,
+              feeTier1,
+              feeTier2,
+              feeTier3,
+            });
+          }
+        }
+      });
+      return NextResponse.json({ success: true });
+    }
+
     const { courseId, feeOld, feeTier1, feeTier2, feeTier3 } = body;
 
     // Check if config exists
