@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { flushSync } from "react-dom";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,24 @@ import { Button } from "@/components/ui/button";
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme();
 
+  const handleToggle = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    if (typeof document !== "undefined" && (document as any).startViewTransition) {
+      (document as any).startViewTransition(() => {
+        flushSync(() => {
+          setTheme(nextTheme);
+        });
+      });
+    } else {
+      setTheme(nextTheme);
+    }
+  };
+
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      onClick={handleToggle}
       className="relative overflow-hidden group hover:bg-accent/50 text-muted-foreground hover:text-foreground transition-colors"
       title="Chuyển chế độ Sáng/Tối"
     >
