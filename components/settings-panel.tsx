@@ -36,7 +36,7 @@ function CourseRow({
   const [fee, setFee] = useState<CourseFeeConfig>(initialFee);
 
   const handleFeeChange = (tier: keyof CourseFeeConfig, value: string) => {
-    const digits = value.replace(/\\D/g, '');
+    const digits = value.replace(/\D/g, '');
     const numValue = digits ? parseInt(digits, 10) : undefined;
     setFee(prev => {
       const next = { ...prev, [tier]: numValue };
