@@ -172,6 +172,20 @@ export function CreditCalculatorV2() {
     }
     setSelectedCourses(newSelected);
 
+    // Bỏ tick môn học cũng phải xoá điểm đã nhập để dữ liệu luôn đồng bộ.
+    if (!isSelected) {
+      setGrades((prevGrades) => {
+        const nextGrades = new Map(prevGrades);
+        nextGrades.delete(courseId);
+        return nextGrades;
+      });
+      setGradeInputs((prevInputs) => {
+        const nextInputs = new Map(prevInputs);
+        nextInputs.delete(courseId);
+        return nextInputs;
+      });
+    }
+
     // Save to API
     const headers = { "Content-Type": "application/json" };
 
@@ -182,11 +196,18 @@ export function CreditCalculatorV2() {
         body: JSON.stringify({ courseId }),
       }).catch((e) => console.log("[v0] Background save failed:", e));
     } else {
-      await fetch("/api/exemptions", {
-        method: "DELETE",
-        headers,
-        body: JSON.stringify({ courseId }),
-      }).catch((e) => console.log("[v0] Background save failed:", e));
+      await Promise.all([
+        fetch("/api/exemptions", {
+          method: "DELETE",
+          headers,
+          body: JSON.stringify({ courseId }),
+        }),
+        fetch("/api/grades", {
+          method: "DELETE",
+          headers,
+          body: JSON.stringify({ courseId }),
+        }),
+      ]).catch((e) => console.log("[v0] Background save failed:", e));
     }
   };
 
@@ -199,7 +220,23 @@ export function CreditCalculatorV2() {
   };
 
   const handleGradeBlur = async (courseId: number) => {
-    const inputValue = gradeInputs.get(courseId) || "";
+    const inputValue = gradeInputs.get(courseId) ?? "";
+
+    if (inputValue.trim() === "") {
+      setGrades((prevGrades) => {
+        const nextGrades = new Map(prevGrades);
+        nextGrades.delete(courseId);
+        return nextGrades;
+      });
+      await fetch("/api/grades", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      }).catch((e) => console.log("[v0] Background delete failed:", e));
+      setGradeInputFocused(null);
+      return;
+    }
+
     const score10 = parseFloat(inputValue);
 
     if (isNaN(score10) || score10 < 0 || score10 > 10) {
@@ -433,8 +470,8 @@ export function CreditCalculatorV2() {
                               max="10"
                               step="0.1"
                               value={
-                                gradeInputs.get(course.id) ||
-                                grade?.score10 ||
+                                gradeInputs.get(course.id) ??
+                                grade?.score10 ??
                                 ""
                               }
                               onChange={(e) =>
@@ -522,8 +559,8 @@ export function CreditCalculatorV2() {
                               max="10"
                               step="0.1"
                               value={
-                                gradeInputs.get(course.id) ||
-                                grade?.score10 ||
+                                gradeInputs.get(course.id) ??
+                                grade?.score10 ??
                                 ""
                               }
                               onChange={(e) =>
